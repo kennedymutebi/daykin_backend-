@@ -1,0 +1,37 @@
+services:
+  daykin_db:
+    image: mysql:8.0
+    container_name: daykin_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: NewPassword123
+      MYSQL_DATABASE: daykin_db
+    ports:
+      - "3311:3306"
+    volumes:
+      - daykin_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pNewPassword123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  daykin_backend:
+    build: .
+    container_name: daykin_backend_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8085:8000"
+    depends_on:
+      daykin_db:
+        condition: service_healthy
+    volumes:
+      - daykin_media:/app/media
+      - daykin_static:/app/staticfiles
+
+volumes:
+  daykin_db_data:
+  daykin_media:
+  daykin_static:

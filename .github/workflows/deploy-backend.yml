@@ -2,7 +2,7 @@ name: Build and Deploy Backend
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'daykin_backend/**'   # adjust to your repo folder structure
 
