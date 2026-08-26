@@ -36,7 +36,6 @@ jobs:
           tags: |
             kennedymutebi/daykin-backend:${{ steps.vars.outputs.sha_short }}
             kennedymutebi/daykin-backend:latest
-
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -44,12 +43,14 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
+            set -e
             cd ~/daykin/backend
-            sed -i "s|image: kennedymutebi/daykin-backend:.*|image: kennedymutebi/daykin-backend:${{ needs.build-and-push.outputs.image_tag }}|" docker-compose.yml
+            sed -i "s|image: kennedymutebi/daykin-backend:.*|image: kennedymutebi/daykin-backend:${{ steps.vars.outputs.sha_short }}|" docker-compose.yml
             docker compose pull daykin_backend
             docker compose up -d daykin_backend
             docker compose exec -T daykin_backend python manage.py migrate --noinput
