@@ -495,6 +495,71 @@ def wish_og_view(request, token):
     return HttpResponse(html, content_type='text/html; charset=utf-8')
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Article / Love Story OG preview — shareable link that shows a real
+# title/image/description in WhatsApp, Facebook, Twitter, etc., then
+# redirects into the React app at /article/<source>/<pk>. `source` is
+# 'article' or 'love_story' since both share the same feed/composer but
+# live in different DB tables with independently-numbered ids.
+# ──────────────────────────────────────────────────────────────────────────────
+
+@csrf_exempt
+def article_og_view(request, source, pk):
+    if source == 'article':
+        obj = Article.objects.filter(pk=pk, is_published=True).first()
+    elif source == 'love_story':
+        obj = LoveStory.objects.filter(pk=pk, is_published=True).first()
+    else:
+        obj = None
+
+    if obj is None:
+        return HttpResponse("Article not found.", status=404)
+
+    react_article_url = request.build_absolute_uri().replace('/api/article/', '/article/', 1)
+
+    og_title       = obj.title
+    og_description = (getattr(obj, 'excerpt', '') or obj.content[:150]).strip()
+    if obj.image:
+        og_image_url = request.build_absolute_uri(obj.image.url)
+    else:
+        og_image_url = request.build_absolute_uri('/static/og-birthday.png')
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{og_title}</title>
+  <meta property="og:type"         content="article" />
+  <meta property="og:site_name"    content="Daykin" />
+  <meta property="og:url"          content="{react_article_url}" />
+  <meta property="og:title"        content="{og_title}" />
+  <meta property="og:description"  content="{og_description}" />
+  <meta property="og:image"        content="{og_image_url}" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="{og_title}" />
+  <meta name="twitter:description" content="{og_description}" />
+  <meta name="twitter:image"       content="{og_image_url}" />
+  <meta http-equiv="refresh" content="0;url={react_article_url}" />
+  <script>window.location.replace("{react_article_url}");</script>
+  <style>
+    body {{
+      margin: 0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: #0f0c29; font-family: sans-serif;
+      color: #FDE68A; font-size: 1.1rem;
+    }}
+  </style>
+</head>
+<body>
+  <p>📰 Opening the article…</p>
+</body>
+</html>"""
+
+    return HttpResponse(html, content_type='text/html; charset=utf-8')
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=['birthdays'],

@@ -146,3 +146,61 @@ class SiteStatsTests(APITestCase):
         self.assertEqual(response.data['stories_published'], 0)
         self.assertEqual(response.data['total_visits'], 0)
         self.assertEqual(response.data['online_now'], 0)
+
+
+class ArticleOgViewTests(APITestCase):
+    """
+    Covers the new /api/article/<source>/<pk>/ view used to give shared
+    article/love-story links a real title/image/description preview
+    before redirecting into the React app.
+    """
+
+    def test_published_article_returns_og_html_and_correct_redirect(self):
+        article = Article.objects.create(
+            title='A published article', excerpt='Short excerpt', content='Body text',
+            is_published=True,
+        )
+        url = reverse('article_og', args=['article', article.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn('A published article', body)
+        self.assertIn(f'/article/article/{article.id}/', body)  # redirect target present
+
+    def test_published_love_story_returns_og_html(self):
+        story = LoveStory.objects.create(
+            title='A love story', excerpt='Sweet excerpt', content='Body text',
+            is_published=True,
+        )
+        url = reverse('article_og', args=['love_story', story.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn('A love story', body)
+        self.assertIn(f'/article/love_story/{story.id}/', body)
+
+    def test_unpublished_article_returns_404(self):
+        article = Article.objects.create(title='Draft', content='x', is_published=False)
+        url = reverse('article_og', args=['article', article.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_unknown_source_returns_404(self):
+        article = Article.objects.create(title='Published', content='x', is_published=True)
+        url = reverse('article_og', args=['not_a_real_source', article.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_nonexistent_id_returns_404(self):
+        url = reverse('article_og', args=['article', 999999])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_no_image_falls_back_to_default_og_image(self):
+        article = Article.objects.create(title='No image here', content='x', is_published=True)
+        url = reverse('article_og', args=['article', article.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('og-birthday.png', response.content.decode())

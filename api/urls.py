@@ -29,6 +29,9 @@ urlpatterns = [
     # ── Wish OG preview (must be BEFORE router.urls) ──────────────────────
     path('wish/<str:token>/', views.wish_og_view, name='wish_og'),
 
+    # ── Article / Love Story OG preview (must be BEFORE router.urls) ──────
+    path('article/<str:source>/<int:pk>/', views.article_og_view, name='article_og'),
+
     # ── Presence / site stats ───────────────────────────────────────────────
     path('presence/ping/',   views.PresencePingView.as_view(),   name='presence_ping'),
     path('presence/online/', views.OnlinePresenceView.as_view(), name='presence_online'),
